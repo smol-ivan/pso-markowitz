@@ -1,0 +1,8 @@
+[package]
+name = "pso-markowitz"
+version = "0.1.0"
+edition = "2024"
+
+[lints]
+rust = {unused_imports = "allow", dead_code = "allow"}
+[dependencies]
