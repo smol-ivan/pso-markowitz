@@ -16,7 +16,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut assets: Vec<Asset> = Vec::with_capacity(n_assets);
 
-    for (i, line) in lines.take(n_assets).enumerate() {
+    for (i, line) in (&mut lines).take(n_assets).enumerate() {
         let asset_data: Vec<f64> = line
             .split_whitespace()
             .map(|s| s.parse::<f64>())
@@ -25,7 +25,30 @@ fn main() -> Result<(), Box<dyn Error>> {
         assets.push(Asset::new(i, asset_data[0], asset_data[1]));
     }
 
-    println!("{:?}", assets.first());
+    println!("Assets leidos.");
+    println!("Leyendo correlaciones . . .");
+
+    let mut correlations: Vec<Correlation> = Vec::with_capacity(n_assets * n_assets);
+
+    for line in lines.into_iter() {
+        let correlation_data: Vec<f64> = line
+            .trim()
+            .split_whitespace()
+            .map(|s| s.parse::<f64>())
+            .collect::<Result<Vec<_>, _>>()?;
+
+        if correlation_data.len() == 0 {
+            break;
+        }
+
+        correlations.push(Correlation::new(
+            correlation_data[0] as usize,
+            correlation_data[1] as usize,
+            correlation_data[2],
+        ));
+    }
+
+    println!("{:?}", correlations.last());
 
     Ok(())
 }
@@ -43,6 +66,23 @@ impl Asset {
             id,
             mean_return,
             standard_deviation,
+        }
+    }
+}
+
+#[derive(Debug)]
+struct Correlation {
+    id_asset_i: usize,
+    id_asset_j: usize,
+    value: f64,
+}
+
+impl Correlation {
+    fn new(id_asset_i: usize, id_asset_j: usize, correlation_value: f64) -> Correlation {
+        Correlation {
+            id_asset_i,
+            id_asset_j,
+            value: correlation_value,
         }
     }
 }
