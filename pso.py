@@ -1,3 +1,4 @@
+from enum import Enum
 from math import sqrt
 from random import random
 from typing import override
@@ -5,14 +6,23 @@ from typing import override
 import numpy as np
 
 
-def pso(mean_return, std_devs, covar_matrix):
-    swarm = swarm_init(mean_return.shape[0], covar_matrix, mean_return)
+class OptimizationMode(Enum):
+    MINIMIZE_RISK = "minimize_risk"
+    MAXIMIZE_RETURN = "maximize_return"
+
+
+def pso(mean_return, covar_matrix, iter, n_swarm, mode, c1, c2, target_value):
+    swarm = swarm_init(
+        mean_return.shape[0], covar_matrix, mean_return, n_swarm, mode, target_value
+    )
 
     best_g_pos, best_g_val = get_best_particle(swarm)
 
-    for i in range(100):
+    for _ in range(iter):
         for particle in swarm:
-            update_particle(particle, best_g_pos, mean_return, covar_matrix)
+            update_particle(
+                particle, best_g_pos, mean_return, covar_matrix, target_value, mode
+            )
 
         best_iter_pos, best_iter_val = get_best_particle(swarm)
 
@@ -26,13 +36,15 @@ def pso(mean_return, std_devs, covar_matrix):
     # el retorno se calcula con el producto punto
 
 
-def swarm_init(n_assets, covar_matrix, mean_return, n_swarm=1000):
+def swarm_init(n_assets, covar_matrix, mean_return, n_swarm, mode, target_value):
     swarm = []
-    for i in range(n_swarm):
+    for _ in range(n_swarm):
         position = np.random.rand(n_assets)
         position = normalization(position)
         velocity = np.zeros(n_assets)
-        fitness = fitness_function(position, mean_return, covar_matrix)
+        fitness = fitness_function(
+            position, mean_return, covar_matrix, mode, target_value
+        )
 
         swarm.append(Particle(position, velocity, fitness))
 
@@ -43,28 +55,34 @@ def fitness_function(
     position,
     mean_return,
     covar_matrix,
+    mode,
+    target_value,
+    penalty=1e4,
 ):
     """
     We assume we need to minimize the risk by a given return_value
     TODO(Find min and max return values)
     TODO(Add maximize return given a risk value)
     """
-    penalty = 1e4
-    target_return = 0.01
 
-    p_return: float = np.dot(position, mean_return)
+    p_return: float = float(np.dot(position, mean_return))
+    p_variance: float = float(np.dot(position, np.dot(covar_matrix, position)))
+    p_risk: float = sqrt(p_variance)
+    # also know as standard_deviation, more convenient bc of the scala
 
-    p_variance: float = np.dot(
-        position, np.dot(covar_matrix, position)
-    )  # also know as risk
+    # considerar agregar penalizacion a un portafolio que tenga pesos negativos
+    # como se busca minimizar el fitness, entonces las particulas evitan "naturalmente" estas soluciones
 
-    fitness: float = sqrt(p_variance)
+    if mode == OptimizationMode.MINIMIZE_RISK:
+        fitness = p_risk  # + penalizacion por peso negativo
+        if p_return < target_value:
+            diff = target_value - p_return
+            fitness += penalty * (diff**2)
 
-    if p_return < target_return:
-        diff = target_return - p_return
-        fitness += penalty * (diff**2)
-
-    return fitness
+    else:
+        pass
+        # Minimizar el negativo del retorno
+    return p_risk
     # Se piensa en si el fitness es mejor
     # fitness > g_best_fitness
     # minimizamos el riesgo, valores ~0 son mejor
@@ -75,6 +93,8 @@ def update_particle(
     best_g_pos,
     mean_return,
     covar_matrix,
+    target_value,
+    mode,
     C1=0.5,
     C2=1.0,
     INERTIA=0.8,
@@ -94,7 +114,9 @@ def update_particle(
     new_position = p.position + p.velocity
     p.position = normalization(new_position)
 
-    new_fitness = fitness_function(p.position, mean_return, covar_matrix)
+    new_fitness = fitness_function(
+        p.position, mean_return, covar_matrix, mode, target_value
+    )
     # print(new_fitness)
 
     if new_fitness < p.best_val:
