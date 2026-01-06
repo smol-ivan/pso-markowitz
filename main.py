@@ -1,9 +1,12 @@
 import argparse
+import os
+from math import sqrt
+from pathlib import Path
 
 import numpy as np
 
 from pso import OptimizationMode, get_covariance, pso
-from utils import get_limits_return_target, load_data
+from utils import get_limits_return_target, get_limits_risk_target, load_data, save_result_csv
 
 
 def main():
@@ -45,6 +48,11 @@ def main():
         help="Print min and max values for target risk",
         action="store_true",
     )
+    parser.add_argument(
+        "--save-result",
+        help="Save result to CSV file in results/ folder",
+        action="store_true",
+    )
     parser.add_argument("data_file", help="Path to portfolio data file", type=str)
     args = parser.parse_args()
 
@@ -64,6 +72,18 @@ def main():
             args.C2,
             args.target_value,
         )
+        
+        portfolio_return = np.dot(best_position, mean_return)
+        portfolio_risk = sqrt(np.dot(best_position, np.dot(covar_matrix, best_position)))
+        
+        if args.save_result:
+            save_result_csv(
+                args.mode,
+                args.data_file,
+                args.target_value,
+                portfolio_risk,
+                portfolio_return,
+            )
 
         print(f"Mejor posicion: {best_position}")
         print(f"Reisgo/varianza: {best_fitness * 100:.2f}%")
@@ -73,7 +93,7 @@ def main():
     elif args.limits_return:
         get_limits_return_target(mean_return)
     elif args.limits_risk:
-        print("How do u even get here?")
+        get_limits_risk_target(std_devs)
 
 
 main()

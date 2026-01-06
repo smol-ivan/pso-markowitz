@@ -80,9 +80,13 @@ def fitness_function(
             fitness += penalty * (diff**2)
 
     else:
-        pass
         # Minimizar el negativo del retorno
-    return p_risk
+        fitness = -p_return
+        if p_risk > target_value:
+            diff = p_risk - target_value
+            fitness += penalty * (diff**2)
+
+    return fitness
     # Se piensa en si el fitness es mejor
     # fitness > g_best_fitness
     # minimizamos el riesgo, valores ~0 son mejor
