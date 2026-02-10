@@ -10,9 +10,9 @@ echo "Starting efficient frontier generation for all files and modes..."
 echo "==========================================================="
 
 MODES=("minimize_risk")
-FILES=("data/port1.txt")
- # MODES=("minimize_risk" "maximize_return")
-# FILES=("data/port1.txt" "data/port2.txt" "data/port3.txt" "data/port4.txt" "data/port5.txt")
+# FILES=("data/port1.txt")
+# MODES=("minimize_risk" "maximize_return")
+FILES=("data/port1.txt" "data/port2.txt" "data/port3.txt" "data/port4.txt" "data/port5.txt")
 
 START_TIME=$(date +%s)
 

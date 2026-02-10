@@ -30,7 +30,7 @@ N_SWARM=100
 ITER=200
 C1=1.7
 C2=1.7
-NUM_POINTS=1000
+NUM_POINTS=500
 
 echo "Generating frontier for mode=$MODE, file=$DATA_FILE"
 

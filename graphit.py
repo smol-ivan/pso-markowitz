@@ -7,6 +7,56 @@ import pandas as pd
 import seaborn as sns
 
 
+# ------------------------------------------------------
+# Cargar frontera eficiente analítica (Markowitz)
+# ------------------------------------------------------
+def load_portef_file(path):
+    """
+    Lee archivos portef*.txt con formato:
+    return   variance
+    """
+    df = pd.read_csv(path, sep=r"\s+", header=None, names=["return", "variance"])
+    df["risk"] = df["variance"] ** 0.5
+    return df
+
+
+# ------------------------------------------------------
+# Generación de gráficas comparativas
+# ------------------------------------------------------
+def graph_generator(df_pso, df_portef, file_name, output_dir):
+    fig, ax = plt.subplots()
+
+    # Frontera PSO
+    sns.scatterplot(
+        data=df_pso, x="risk", y="return", ax=ax, color="teal", s=60, label="PSO"
+    )
+
+    # Frontera eficiente analítica
+    if df_portef is not None:
+        sns.lineplot(
+            data=df_portef,
+            x="risk",
+            y="return",
+            ax=ax,
+            color="black",
+            linestyle="--",
+            linewidth=2,
+            label="Markowitz (sin restricciones)",
+        )
+
+    ax.set_title("Comparación de Fronteras Eficientes", pad=15)
+    ax.set_xlabel(r"Risk ($\sigma$)")
+    ax.set_ylabel(r"Expected Return ($E[r]$)")
+    ax.legend()
+
+    save_path = os.path.join(output_dir, f"{file_name}.pdf")
+    plt.savefig(save_path)
+    plt.close()
+
+
+# ------------------------------------------------------
+# Main
+# ------------------------------------------------------
 def main():
     sns.set_theme(style="whitegrid")
     plt.rcParams.update(
@@ -20,30 +70,31 @@ def main():
         }
     )
 
-    input_dir = Path("./results/")
+    results_dir = Path("./results/")
+    portef_dir = Path("./data/")
     output_dir = "./graficas"
+
     if os.path.exists(output_dir):
         shutil.rmtree(output_dir)
     os.makedirs(output_dir)
 
-    for res_file in input_dir.iterdir():
-        # full_path = os.path.join(result_dir, resultado)
-        df = pd.read_csv(res_file)
-        graph_generator(df, res_file.name, output_dir)
+    for res_file in results_dir.iterdir():
+        if res_file.suffix != ".csv":
+            continue
 
+        # Resultados PSO
+        df_pso = pd.read_csv(res_file)
 
-def graph_generator(df, file_name, output_dir):
-    fig, ax = plt.subplots()
+        # Buscar archivo portef correspondiente
+        # ejemplo: result_1.csv -> portef1.txt
+        idx = "".join(filter(str.isdigit, res_file.stem))
+        portef_file = portef_dir / f"portef{idx}.txt"
 
-    sns.scatterplot(data=df, x="risk", y="return", ax=ax, color="teal", s=60)
+        df_portef = None
+        if portef_file.exists():
+            df_portef = load_portef_file(portef_file)
 
-    ax.set_title("Frontera eficiente", pad=15)
-    ax.set_xlabel(r"Risk ($\sigma$)")
-    ax.set_ylabel(r"Expected Return ($E[r]$)")
-
-    save_path = os.path.join(output_dir, f"{file_name}.pdf")
-    plt.savefig(save_path)
-    plt.close()
+        graph_generator(df_pso, df_portef, res_file.stem, output_dir)
 
 
 if __name__ == "__main__":
